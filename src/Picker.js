@@ -25,7 +25,7 @@ const Picker = ({
   });
 
   const getRootStyle = () => ({
-    height: `${itemHeight * visibleItems}px`,
+    height: `${getListHeight()}px`,
   });
 
   const getMaskStyle = () => ({
