@@ -11,39 +11,45 @@ const Picker = ({
   const [itemHeight, setItemHeight] = useState(0);
   const [curScroll, setCurScroll] = useState(0);
 
-  const isMoving = useRef(false);
-  const startY = useRef(0);
-  const finishY = useRef(0);
+  const yAxis = useRef({
+    isMoving: false,
+    start: 0,
+    end: 0,
+  });
 
-  const getListHeight = () => {
-    return itemHeight * visibleItems;
-  };
+  const getListHeight = () => itemHeight * visibleItems;
+
   const getListStyles = () => ({
     transform: `translateY(${-curScroll}px)`,
     transition: `${transition}ms`,
   });
+
   const getRootStyle = () => ({
     height: `${itemHeight * visibleItems}px`,
   });
+
   const getMaskStyle = () => ({
     top: `${maskPositions * itemHeight}px`,
     height: `${itemHeight}px`,
   });
 
+  const getPageY = (event) => (event.touches ? event.touches[0] : event).pageY;
+
   const onStart = (event) => {
-    isMoving.current = true;
-    startY.current = event.pageY;
+    yAxis.current.isMoving = true;
+    yAxis.current.start = getPageY(event);
   };
 
   const onMove = (event) => {
-    if (!isMoving.current) {
+    if (!yAxis.current.isMoving) {
       return;
     }
 
     const listHeight =
       listRef.current.offsetHeight - getListHeight() + itemHeight;
 
-    let newCurScroll = startY.current - event.pageY + finishY.current;
+    let newCurScroll =
+      yAxis.current.start + yAxis.current.end - getPageY(event);
 
     if (newCurScroll < -itemHeight) {
       newCurScroll = -itemHeight;
@@ -52,22 +58,28 @@ const Picker = ({
     }
 
     setCurScroll(newCurScroll);
-    finishY.current = newCurScroll;
+    yAxis.current.end = newCurScroll;
   };
 
   const onEnd = () => {
-    isMoving.current = false;
+    yAxis.current.isMoving = false;
 
-    const itemsLength = options.length;
+    let newCurScroll = yAxis.current.end;
 
-    let newCurScroll = finishY.current;
-
-    if (newCurScroll % itemsLength !== 0) {
+    if (newCurScroll % options.length !== 0) {
       newCurScroll = Math.floor(newCurScroll / itemHeight) * itemHeight;
     }
 
     setCurScroll(newCurScroll);
-    finishY.current = newCurScroll;
+  };
+
+  const handleClick = (index) => (event) => {
+    event.stopPropagation();
+
+    const newCurScroll = (index - 1) * itemHeight;
+
+    setCurScroll(newCurScroll);
+    yAxis.current.end = newCurScroll;
   };
 
   useLayoutEffect(() => {
@@ -86,13 +98,23 @@ const Picker = ({
     }
 
     listRef.current.addEventListener("mousedown", onStart);
+    listRef.current.addEventListener("touchstart", onStart);
+
     window.addEventListener("mousemove", onMove);
+    window.addEventListener("touchmove", onMove);
+
     window.addEventListener("mouseup", onEnd);
+    window.addEventListener("touchend", onEnd);
 
     return () => {
       listRef.current?.removeEventListener("mousedown", onStart);
+      listRef.current?.removeEventListener("mousedown", onStart);
+
       window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("touchmove", onMove);
+
       window.removeEventListener("mouseup", onEnd);
+      window.removeEventListener("touchend", onEnd);
     };
   }, [listRef.current]);
 
@@ -101,8 +123,8 @@ const Picker = ({
       <div className="mask" style={getMaskStyle()}></div>
 
       <div ref={listRef} className="list" style={getListStyles()}>
-        {options?.map((option) => (
-          <div className="item" key={option}>
+        {options?.map((option, ind) => (
+          <div onClick={handleClick(ind)} className="item" key={option}>
             {option}
           </div>
         ))}
