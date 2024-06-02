@@ -1,0 +1,24 @@
+.root {
+  border: 1px solid black;
+  overflow: hidden;
+  position: relative;
+}
+
+.list {
+  min-width: 120px;
+}
+
+.item {
+  text-align: center;
+  border-bottom: 1px solid #e3e4e9;
+  padding: 5px 10px;
+}
+
+.mask {
+  position: absolute;
+  left: 0;
+  width: 100%;
+
+  background-color: #e3e4e9;
+  opacity: .5;
+}
