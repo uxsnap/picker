@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import "./Picker.scss";
 
 const Picker = ({
@@ -8,6 +8,7 @@ const Picker = ({
   transition = 400,
   defaultValue = options[0],
   onChange,
+  velocity = 20,
 }) => {
   const listRef = useRef(null);
   const [itemHeight, setItemHeight] = useState(0);
@@ -17,6 +18,12 @@ const Picker = ({
     isMoving: false,
     start: 0,
     end: 0,
+  });
+
+  const velocityObject = useRef({
+    y: 0,
+    time: Date.now(),
+    value: 0,
   });
 
   const getListHeight = () => itemHeight * visibleItems;
@@ -35,7 +42,35 @@ const Picker = ({
     height: `${itemHeight}px`,
   });
 
+  const getItemIndex = (newCurScroll) => Math.floor(newCurScroll / itemHeight);
+
   const getPageY = (event) => (event.touches ? event.touches[0] : event).pageY;
+
+  const updateVelocity = (newCurScroll) => {
+    const now = Date.now();
+
+    const dt = now - velocityObject.time;
+    const dS = newCurScroll - velocityObject.y;
+
+    velocityObject.velocity = dS / dt;
+    velocityObject.y = dS;
+    velocityObject.time = dt;
+  };
+
+  const checkBorders = (newCurScroll) => {
+    const listHeight =
+      listRef.current.offsetHeight - getListHeight() + itemHeight;
+
+    if (newCurScroll <= -itemHeight) {
+      return -itemHeight;
+    }
+
+    if (listHeight <= newCurScroll) {
+      return listHeight;
+    }
+
+    return newCurScroll;
+  };
 
   const onStart = (event) => {
     yAxis.current.isMoving = true;
@@ -47,24 +82,17 @@ const Picker = ({
       return;
     }
 
-    const listHeight =
-      listRef.current.offsetHeight - getListHeight() + itemHeight;
-
     let newCurScroll =
       yAxis.current.start + yAxis.current.end - getPageY(event);
 
-    if (newCurScroll < -itemHeight) {
-      newCurScroll = -itemHeight;
-    } else if (listHeight <= newCurScroll) {
-      newCurScroll = listHeight;
+    if (newCurScroll !== velocityObject.y) {
+      updateVelocity(newCurScroll);
     }
+
+    newCurScroll = checkBorders(newCurScroll);
 
     setCurScroll(newCurScroll);
     yAxis.current.end = newCurScroll;
-  };
-
-  const getItemIndex = (newCurScroll) => {
-    return Math.floor(newCurScroll / itemHeight);
   };
 
   const onEnd = () => {
@@ -72,9 +100,15 @@ const Picker = ({
 
     let newCurScroll = yAxis.current.end;
 
+    if (velocityObject.velocity) {
+      newCurScroll += velocityObject.velocity * velocity;
+    }
+
     if (newCurScroll % options.length !== 0) {
       newCurScroll = getItemIndex(newCurScroll) * itemHeight;
     }
+
+    newCurScroll = checkBorders(newCurScroll);
 
     setCurScroll(newCurScroll);
     onChange(options[getItemIndex(newCurScroll) + 1]);
