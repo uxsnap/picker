@@ -63,17 +63,21 @@ const Picker = ({
     yAxis.current.end = newCurScroll;
   };
 
+  const getItemIndex = (newCurScroll) => {
+    return Math.floor(newCurScroll / itemHeight);
+  };
+
   const onEnd = () => {
     yAxis.current.isMoving = false;
 
     let newCurScroll = yAxis.current.end;
 
     if (newCurScroll % options.length !== 0) {
-      newCurScroll = Math.floor(newCurScroll / itemHeight) * itemHeight;
+      newCurScroll = getItemIndex(newCurScroll) * itemHeight;
     }
 
     setCurScroll(newCurScroll);
-    onChange(Math.floor(newCurScroll / itemHeight));
+    onChange(options[getItemIndex(newCurScroll) + 1]);
   };
 
   const handleClick = (index) => (event) => {
