@@ -6,6 +6,8 @@ const Picker = ({
   visibleItems = 3,
   maskPositions = Math.floor(visibleItems / 2),
   transition = 400,
+  defaultValue = options[0],
+  onChange,
 }) => {
   const listRef = useRef(null);
   const [itemHeight, setItemHeight] = useState(0);
@@ -71,6 +73,7 @@ const Picker = ({
     }
 
     setCurScroll(newCurScroll);
+    onChange(Math.floor(newCurScroll / itemHeight));
   };
 
   const handleClick = (index) => (event) => {
@@ -80,6 +83,7 @@ const Picker = ({
 
     setCurScroll(newCurScroll);
     yAxis.current.end = newCurScroll;
+    onChange(options[index]);
   };
 
   useLayoutEffect(() => {
@@ -91,6 +95,12 @@ const Picker = ({
 
     setItemHeight(child.offsetHeight);
   }, []);
+
+  useEffect(() => {
+    const optionIndex = options.findIndex((option) => option === defaultValue);
+
+    setCurScroll((optionIndex - 1) * itemHeight);
+  }, [defaultValue, itemHeight]);
 
   useEffect(() => {
     if (!listRef.current) {
